@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oscar Herruzo — IA para Negocios</title>
+  <meta name="description" content="Automatizaciones empresariales con IA. Email, contenido, análisis y chatbots a medida. Entrega en 48h.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div class="noise-overlay" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow--top" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow--mid" aria-hidden="true"></div>
+
+  <!-- NAV -->
+  <nav id="navbar">
+    <a href="#" class="logo">
+      <span class="logo-first">Oscar</span>
+      <span class="logo-last">Herruzo</span>
+      <span class="logo-dot">·</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#servicios">Servicios</a></li>
+      <li><a href="#proceso">Proceso</a></li>
+      <li><a href="#precios">Precios</a></li>
+      <li><a href="#testimonios">Clientes</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ul>
+    <div class="nav-actions">
+      <a class="btn-ghost" href="/login">Iniciar sesión</a>
+      <button class="btn-nav" onclick="scrollToSection('contacto')">Hablar con Oscar</button>
+    </div>
+    <button class="nav-hamburger" id="hamburger" aria-label="Abrir menú" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- MOBILE MENU -->
+  <div class="mobile-menu" id="mobileMenu" aria-hidden="true">
+    <div class="mobile-menu-logo">
+      <span class="logo-first">Oscar</span>
+      <span class="logo-last">Herruzo</span>
+    </div>
+    <ul>
+      <li><a href="/login" style="color: var(--accent);">Iniciar sesión →</a></li>
+      <li><a href="#servicios" onclick="closeMenu()">Servicios</a></li>
+      <li><a href="#proceso" onclick="closeMenu()">Proceso</a></li>
+      <li><a href="#precios" onclick="closeMenu()">Precios</a></li>
+      <li><a href="#testimonios" onclick="closeMenu()">Clientes</a></li>
+      <li><a href="#faq" onclick="closeMenu()">FAQ</a></li>
+      <li><a href="#contacto" onclick="closeMenu()">Contacto</a></li>
+    </ul>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-label reveal">
+        <span class="pulse-dot"></span>
+        IA para Negocios · Entrega en 48h
+      </div>
+      <h1 class="reveal reveal--delay-1">
+        Tu empresa funciona.<br>
+        Yo la hago<br>
+        <em>funcionar sola.</em>
+      </h1>
+      <p class="hero-desc reveal reveal--delay-2">
+        Automatizaciones a medida con IA que gestionan tus emails, generan contenido, analizan datos y atienden a tus clientes. Sin código, sin contratar más personal.
+      </p>
+      <div class="hero-btns reveal reveal--delay-3">
+        <button class="btn-primary" onclick="scrollToSection('contacto')">
+          Solicitar propuesta gratuita
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="btn-outline" onclick="scrollToSection('servicios')">Ver servicios</button>
+      </div>
+      <div class="hero-social reveal reveal--delay-4">
+        <div class="social-faces">
+          <div class="face f1">CR</div>
+          <div class="face f2">LM</div>
+          <div class="face f3">AF</div>
+          <div class="face f4">SG</div>
+        </div>
+        <p class="social-text"><strong>+340 empresas</strong> ya automatizan con IA</p>
+      </div>
+    </div>
+
+    <div class="hero-visual reveal reveal--delay-2">
+      <div class="vis-card">
+        <div class="vis-header">
+          <span class="vis-title">
+            <span class="live-dot"></span>
+            Automatizaciones activas
+          </span>
+          <span class="vis-badge">En tiempo real</span>
+        </div>
+        <div class="flow-list">
+          <div class="flow-row">
+            <div class="flow-icon fi-blue">📧</div>
+            <div class="flow-info">
+              <div class="flow-name">Emails automáticos con IA</div>
+              <div class="flow-sub">Inbox → IA Llama 3.3 → Respuesta</div>
+            </div>
+            <span class="flow-status fs-ok">Activo</span>
+          </div>
+          <div class="flow-connector"></div>
+          <div class="flow-row">
+            <div class="flow-icon fi-purple">🤖</div>
+            <div class="flow-info">
+              <div class="flow-name">Chatbot de soporte IA</div>
+              <div class="flow-sub">Web → Groq API → Ticket → Agente</div>
+            </div>
+            <span class="flow-status fs-ok">Activo</span>
+          </div>
+          <div class="flow-connector"></div>
+          <div class="flow-row">
+            <div class="flow-icon fi-green">📊</div>
+            <div class="flow-info">
+              <div class="flow-name">Análisis de datos</div>
+              <div class="flow-sub">Datos → IA → Informe → Slack</div>
+            </div>
+            <span class="flow-status fs-run">En ejecución</span>
+          </div>
+        </div>
+        <div class="vis-metric">
+          <div>
+            <div class="metric-val">14.2h</div>
+            <div class="metric-label">Horas ahorradas esta semana</div>
+          </div>
+          <span class="metric-up">↑ 23%</span>
+        </div>
+      </div>
+      <div class="corner-tl"></div>
+      <div class="corner-br"></div>
+    </div>
+  </section>
+
+  <!-- LOGOS -->
+  <div class="logos-section">
+    <p class="logos-label">Stack tecnológico que uso en cada proyecto</p>
+    <div class="logos-row">
+      <span class="tool-pill">Next.js 15</span>
+      <span class="tool-pill">Supabase</span>
+      <span class="tool-pill">Groq · Llama 3.3</span>
+      <span class="tool-pill">OpenAI GPT-4o</span>
+      <span class="tool-pill">Make</span>
+      <span class="tool-pill">n8n</span>
+      <span class="tool-pill">HubSpot</span>
+      <span class="tool-pill">Notion</span>
+      <span class="tool-pill">Stripe</span>
+      <span class="tool-pill">Slack</span>
+    </div>
+  </div>
+
+  <!-- SERVICES -->
+  <section class="section" id="servicios">
+    <div class="section-inner">
+      <div class="section-header reveal">
+        <p class="section-tag">Servicios</p>
+        <h2>¿Qué puedo<br>automatizar con IA?</h2>
+        <p class="section-desc">Seis tipos de automatización inteligente que eliminarán el trabajo repetitivo de tu equipo desde el primer día.</p>
+      </div>
+      <div class="services-grid">
+        <div class="srv reveal">
+          <div class="srv-icon si-blue">📧</div>
+          <div class="srv-title">Gestión de emails con IA</div>
+          <div class="srv-desc">La IA lee, clasifica y responde emails profesionales por ti. Nunca más una bandeja de entrada desbordada.</div>
+          <div class="srv-tools">Groq · Llama 3.3 · Gmail API</div>
+        </div>
+        <div class="srv reveal">
+          <div class="srv-icon si-purple">✍️</div>
+          <div class="srv-title">Generación de contenido</div>
+          <div class="srv-desc">Artículos, posts, newsletters y copys de marketing generados y publicados automáticamente según tu calendario.</div>
+          <div class="srv-tools">GPT-4o · Notion · Buffer</div>
+        </div>
+        <div class="srv reveal">
+          <div class="srv-icon si-amber">📄</div>
+          <div class="srv-title">Resumen de documentos</div>
+          <div class="srv-desc">Contratos, informes y reuniones resumidos en segundos. La IA extrae lo relevante y lo entrega en tu formato preferido.</div>
+          <div class="srv-tools">Claude · Supabase · Notion</div>
+        </div>
+        <div class="srv reveal">
+          <div class="srv-icon si-green">📊</div>
+          <div class="srv-title">Análisis de datos y métricas</div>
+          <div class="srv-desc">Tus datos de ventas, tráfico o operaciones analizados por IA con conclusiones accionables enviadas a tu equipo.</div>
+          <div class="srv-tools">Groq · Google Sheets · Looker</div>
+        </div>
+        <div class="srv reveal">
+          <div class="srv-icon si-teal">🤖</div>
+          <div class="srv-title">Chatbot de atención al cliente</div>
+          <div class="srv-desc">Asistente IA que responde el 80% de las consultas de soporte al instante, 24/7, con escalado inteligente al agente.</div>
+          <div class="srv-tools">Llama 3.3 · Voiceflow · Intercom</div>
+        </div>
+        <div class="srv reveal">
+          <div class="srv-icon si-rose">🔔</div>
+          <div class="srv-title">Notificaciones inteligentes</div>
+          <div class="srv-desc">Alertas y comunicaciones redactadas por IA y enviadas en el momento preciso al canal correcto según el contexto.</div>
+          <div class="srv-tools">Make · Slack · WhatsApp · Email</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROCESS -->
+  <section class="section section--dark" id="proceso">
+    <div class="section-inner">
+      <div class="section-header reveal">
+        <p class="section-tag">Cómo trabajo</p>
+        <h2>De la idea a la<br>automatización funcionando</h2>
+      </div>
+      <div class="process-grid">
+        <div class="steps">
+          <div class="step reveal">
+            <div class="step-num">01</div>
+            <div class="step-body">
+              <h3>Diagnóstico sin coste</h3>
+              <p>Analizamos tus procesos, identificamos los cuellos de botella y te explico qué se puede automatizar con IA y cuánto tiempo te ahorraría.</p>
+            </div>
+          </div>
+          <div class="step-line" aria-hidden="true"></div>
+          <div class="step reveal">
+            <div class="step-num">02</div>
+            <div class="step-body">
+              <h3>Arquitectura a medida</h3>
+              <p>Diseño el flujo completo con Next.js, Supabase y Groq API y te muestro el mapa antes de empezar. Sin sorpresas.</p>
+            </div>
+          </div>
+          <div class="step-line" aria-hidden="true"></div>
+          <div class="step reveal">
+            <div class="step-num">03</div>
+            <div class="step-body">
+              <h3>Implementación y pruebas</h3>
+              <p>Construyo, pruebo con datos reales y ajusto hasta que todo funcione perfectamente en producción.</p>
+            </div>
+          </div>
+          <div class="step-line" aria-hidden="true"></div>
+          <div class="step reveal">
+            <div class="step-num">04</div>
+            <div class="step-body">
+              <h3>Entrega con soporte incluido</h3>
+              <p>Recibes la automatización activa, documentación completa y soporte directo conmigo durante los primeros 30 días.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="process-card reveal">
+          <div class="pc-header">
+            <div class="pc-avatar">👤</div>
+            <div>
+              <div class="pc-name">Carlos R. · CEO</div>
+              <div class="pc-role">Agencia de Marketing Digital</div>
+            </div>
+          </div>
+          <div class="chat-log">
+            <div class="msg bot">Hola Carlos, he analizado tu flujo de emails. Podemos automatizar las respuestas comerciales con Llama 3.3 — te ahorraría unas 2h diarias.</div>
+            <div class="msg user">¿Necesito cambiar mis herramientas actuales?</div>
+            <div class="msg bot">No. Me conecto a tu Gmail y CRM existentes. Tú solo revisas lo que la IA no puede resolver sola.</div>
+          </div>
+          <div class="pc-flow-label">Automatización entregada 48h después →</div>
+          <div class="mini-flow">
+            <div class="mf-row"><div class="mf-icon fi-blue">📧</div><span class="mf-text">Email entra en bandeja</span><span class="mf-ok">✓</span></div>
+            <div class="mf-line"></div>
+            <div class="mf-row"><div class="mf-icon fi-purple">🤖</div><span class="mf-text">IA clasifica e intención</span><span class="mf-ok">✓</span></div>
+            <div class="mf-line"></div>
+            <div class="mf-row"><div class="mf-icon fi-green">✍️</div><span class="mf-text">Respuesta profesional generada</span><span class="mf-ok">✓</span></div>
+            <div class="mf-line"></div>
+            <div class="mf-row"><div class="mf-icon fi-amber">🔔</div><span class="mf-text">Notificación si requiere revisión</span><span class="mf-ok">✓</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="section" id="precios">
+    <div class="section-inner">
+      <div class="section-header reveal" style="text-align:center;align-items:center;">
+        <p class="section-tag">Precios</p>
+        <h2>Planes simples y transparentes</h2>
+        <p class="section-desc" style="text-align:center;">Sin letra pequeña. Sin permanencia. Cancela cuando quieras.</p>
+      </div>
+      <div class="pricing-grid">
+        <div class="plan-card reveal">
+          <div class="plan-name">Starter</div>
+          <div class="plan-price"><sup>€</sup>297</div>
+          <div class="plan-period">pago único por automatización</div>
+          <hr class="plan-hr">
+          <ul class="plan-features">
+            <li>1 automatización con IA</li>
+            <li>Hasta 3 integraciones</li>
+            <li>Entrega en 48–72h</li>
+            <li>Documentación completa</li>
+            <li>14 días de soporte</li>
+            <li class="no">Revisiones ilimitadas</li>
+            <li class="no">Acceso directo vía Slack</li>
+          </ul>
+          <button class="plan-cta plan-cta-out" onclick="scrollToSection('contacto')">Empezar</button>
+        </div>
+        <div class="plan-card plan-card--best reveal">
+          <div class="best-badge">Más popular</div>
+          <div class="plan-name">Growth</div>
+          <div class="plan-price"><sup>€</sup>597</div>
+          <div class="plan-period">/ mes · sin permanencia</div>
+          <hr class="plan-hr">
+          <ul class="plan-features">
+            <li>Automatizaciones ilimitadas</li>
+            <li>Integraciones ilimitadas</li>
+            <li>Entrega en 24–48h</li>
+            <li>Documentación y formación</li>
+            <li>30 días de soporte</li>
+            <li>Revisiones ilimitadas</li>
+            <li>Acceso directo vía Slack</li>
+          </ul>
+          <button class="plan-cta plan-cta-fill" onclick="scrollToSection('contacto')">Empezar ahora →</button>
+        </div>
+        <div class="plan-card reveal">
+          <div class="plan-name">Enterprise</div>
+          <div class="plan-price plan-price--custom">A medida</div>
+          <div class="plan-period">proyectos complejos</div>
+          <hr class="plan-hr">
+          <ul class="plan-features">
+            <li>Auditoría completa de procesos</li>
+            <li>SaaS completo con Next.js + Supabase</li>
+            <li>Agentes IA con Groq / GPT-4o</li>
+            <li>SLA garantizado</li>
+            <li>Soporte 24/7 dedicado</li>
+            <li>Formación del equipo</li>
+            <li>Contrato y factura anual</li>
+          </ul>
+          <button class="plan-cta plan-cta-out" onclick="scrollToSection('contacto')">Contactar →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section class="section section--dark" id="testimonios">
+    <div class="section-inner">
+      <div class="section-header reveal">
+        <p class="section-tag">Clientes</p>
+        <h2>Lo que dicen quienes<br>ya automatizan con IA</h2>
+      </div>
+      <div class="testi-grid">
+        <div class="testi reveal">
+          <div class="stars">★★★★★</div>
+          <p class="testi-text">"En 48 horas teníamos los emails comerciales automatizados con IA. Pasamos de 2h diarias redactando respuestas a cero. El ROI fue inmediato."</p>
+          <div class="testi-author">
+            <div class="testi-av av1">CR</div>
+            <div>
+              <div class="testi-name">Carlos Romero</div>
+              <div class="testi-role">CEO · Agencia de Marketing Digital</div>
+            </div>
+          </div>
+        </div>
+        <div class="testi reveal">
+          <div class="stars">★★★★★</div>
+          <p class="testi-text">"El chatbot IA que nos implementó resuelve el 80% de las consultas de soporte sin intervención humana. El equipo ahora solo gestiona los casos realmente complejos."</p>
+          <div class="testi-author">
+            <div class="testi-av av2">LM</div>
+            <div>
+              <div class="testi-name">Laura Martínez</div>
+              <div class="testi-role">COO · Tienda online de moda</div>
+            </div>
+          </div>
+        </div>
+        <div class="testi reveal">
+          <div class="stars">★★★★★</div>
+          <p class="testi-text">"Los informes de análisis que tardaban dos días ahora se generan solos cada semana. La IA extrae exactamente las métricas que necesito y las envía al equipo."</p>
+          <div class="testi-author">
+            <div class="testi-av av3">AF</div>
+            <div>
+              <div class="testi-name">Andrés Fuentes</div>
+              <div class="testi-role">Director Financiero · Consultora</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section" id="faq">
+    <div class="section-inner">
+      <div class="section-header reveal" style="text-align:center;align-items:center;">
+        <p class="section-tag">FAQ</p>
+        <h2>Preguntas frecuentes</h2>
+      </div>
+      <div class="faq-wrap">
+        <div class="faq-item reveal">
+          <button class="faq-q" aria-expanded="false">
+            ¿Necesito saber programar o tener equipo técnico?
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-a" role="region">
+            No. Me encargo de todo el proceso técnico. Tú me explicas el flujo de trabajo en lenguaje corriente y yo lo construyo. Solo necesitas acceso a tus herramientas actuales.
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-q" aria-expanded="false">
+            ¿Qué stack tecnológico usas?
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-a" role="region">
+            Principalmente Next.js 15, Supabase (PostgreSQL + auth), Groq API con Llama 3.3 70B, y OpenAI GPT-4o. Para integraciones uso Make, n8n y las APIs de las herramientas que ya usas.
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-q" aria-expanded="false">
+            ¿Cuánto tarda en estar lista una automatización?
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-a" role="region">
+            Las automatizaciones estándar (email, contenido, chatbot) las entrego en 24–72 horas. Los proyectos SaaS completos o con múltiples integraciones complejas suelen tardar entre 5 y 10 días laborables.
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-q" aria-expanded="false">
+            ¿Qué pasa si algo falla después de la entrega?
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-a" role="region">
+            Todos los proyectos incluyen período de soporte. Si algo falla por causas atribuibles a mi implementación lo reparo sin coste adicional dentro del período de garantía.
+          </div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-q" aria-expanded="false">
+            ¿Puedo ver un ejemplo real de lo que construyes?
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-a" role="region">
+            Sí. Tengo un portfolio público en GitHub con un SaaS completo de automatizaciones IA (Next.js 15 + Supabase + Groq). Puedes verlo en el enlace "Ver demo" del menú superior.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="cta-section" id="contacto">
+    <div class="cta-glow" aria-hidden="true"></div>
+    <div class="cta-inner">
+      <p class="section-tag reveal">Contacto</p>
+      <h2 class="reveal">¿Hablamos sobre<br>tu proceso?</h2>
+      <p class="cta-desc reveal">Cuéntame qué quieres automatizar y te preparo una propuesta sin compromiso en menos de 24 horas.</p>
+
+      <form class="contact-form reveal" id="contactForm" novalidate>
+        <!-- Web3Forms access key — reemplaza con la tuya: https://web3forms.com -->
+        <input type="hidden" name="access_key" value="3c73e5d7-3dbc-4297-9020-0c4bcced6661">
+        <input type="hidden" name="subject" value="🚀 Nueva propuesta desde la landing — Oscar Herruzo IA">
+        <input type="hidden" name="from_name" value="Landing Oscar Herruzo IA">
+        <input type="hidden" name="replyto" id="hiddenReplyTo">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="fieldName">Nombre</label>
+            <input type="text" id="fieldName" name="name" placeholder="Tu nombre" autocomplete="name">
+            <span class="field-error" id="errName" role="alert"></span>
+          </div>
+          <div class="form-group">
+            <label for="fieldEmail">Email</label>
+            <input type="email" id="fieldEmail" name="email" placeholder="tu@empresa.com" autocomplete="email">
+            <span class="field-error" id="errEmail" role="alert"></span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="fieldCompany">Empresa <span class="label-optional">(opcional)</span></label>
+          <input type="text" id="fieldCompany" name="company" placeholder="Nombre de tu empresa" autocomplete="organization">
+        </div>
+        <div class="form-group">
+          <label for="fieldMessage">¿Qué quieres automatizar?</label>
+          <textarea id="fieldMessage" name="message" rows="4" placeholder="Cuéntame brevemente tu proceso actual y qué te gustaría mejorar con IA..."></textarea>
+          <span class="field-error" id="errMessage" role="alert"></span>
+        </div>
+        <button type="submit" class="btn-submit" id="submitBtn">
+          <span class="btn-submit-text">Enviar propuesta</span>
+          <span class="btn-submit-spinner" aria-hidden="true"></span>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" class="btn-submit-arrow" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </form>
+
+      <p class="cta-note reveal">Sin compromiso · Respuesta en menos de 24h · Diagnóstico gratuito incluido</p>
+    </div>
+  </section>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast" role="alert" aria-live="polite">
+    <span class="toast-icon">✓</span>
+    <div>
+      <strong id="toastTitle">¡Mensaje enviado!</strong>
+      <p id="toastMsg">Te respondo en menos de 24h.</p>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">
+      <span class="logo-first">Oscar</span>
+      <span class="logo-last">Herruzo</span>
+    </div>
+    <ul class="footer-links">
+      <li><a href="#servicios">Servicios</a></li>
+      <li><a href="#precios">Precios</a></li>
+      <li><a href="#faq">FAQ</a></li>
+      <li><a href="https://github.com/oscarherruzo/portfolio-IA-Automatizaciones" target="_blank" rel="noopener">GitHub</a></li>
+      <li><a href="/cdn-cgi/l/email-protection#0b6478686a79636e79797e7164664b6c666a626725686466">Contacto</a></li>
+    </ul>
+    <div class="footer-copy">© 2025 Oscar Herruzo · Todos los derechos reservados</div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
