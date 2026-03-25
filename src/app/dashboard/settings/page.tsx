@@ -2,31 +2,21 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-type Profile = { full_name?: string; email?: string; company?: string; phone?: string; created_at?: string };
-type ApiToken = { id: string; token: string; name: string; last_used_at: string | null; created_at: string };
-type Invitation = { id: string; email: string; accepted: boolean; created_at: string };
-
-type Tab = "perfil" | "api" | "invitaciones";
+type Profile = { full_name?: string; email?: string; company_name?: string; sector?: string; plan?: string; tokens_used?: number; created_at?: string };
+type Tab = "perfil" | "seguridad" | "plan";
 
 export default function SettingsPage() {
-  const [profile, setProfile]     = useState<Profile | null>(null);
-  const [name, setName]           = useState("");
-  const [company, setCompany]     = useState("");
-  const [phone, setPhone]         = useState("");
-  const [saving, setSaving]       = useState(false);
-  const [saved, setSaved]         = useState(false);
-  const [tab, setTab]             = useState<Tab>("perfil");
-
-  const [apiTokens, setApiTokens] = useState<ApiToken[]>([]);
-  const [newTokenName, setNewTokenName] = useState("");
-  const [creatingToken, setCreatingToken] = useState(false);
-  const [visibleToken, setVisibleToken] = useState<string | null>(null);
-  const [copied, setCopied] = useState<string | null>(null);
-
-  const [invitations, setInvitations] = useState<Invitation[]>([]);
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviting, setInviting] = useState(false);
-  const [inviteSent, setInviteSent] = useState(false);
+  const [profile, setProfile]   = useState<Profile | null>(null);
+  const [name, setName]         = useState("");
+  const [company, setCompany]   = useState("");
+  const [sector, setSector]     = useState("");
+  const [saving, setSaving]     = useState(false);
+  const [saved, setSaved]       = useState(false);
+  const [tab, setTab]           = useState<Tab>("perfil");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordMsg, setPasswordMsg] = useState("");
 
   const supabase = createClient();
 
@@ -34,196 +24,176 @@ export default function SettingsPage() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
       supabase.from("profiles").select("*").eq("id", user.id).single().then(({ data }) => {
-        if (data) { setProfile(data); setName(data.full_name || ""); setCompany(data.company || ""); setPhone(data.phone || ""); }
+        if (data) {
+          setProfile({ ...data, email: user.email });
+          setName(data.full_name || "");
+          setCompany(data.company_name || "");
+          setSector(data.sector || "");
+        }
       });
-      supabase.from("api_tokens").select("*").eq("user_id", user.id).order("created_at").then(({ data }) => setApiTokens(data || []));
     });
-    fetch("/api/invitations").then(r => r.json()).then(data => setInvitations(Array.isArray(data) ? data : []));
   }, []);
 
   async function saveProfile() {
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) { await supabase.from("profiles").update({ full_name: name, company, phone }).eq("id", user.id); }
+    if (user) {
+      await supabase.from("profiles").update({ full_name: name, company_name: company, sector }).eq("id", user.id);
+      setProfile(prev => prev ? { ...prev, full_name: name, company_name: company, sector } : prev);
+    }
     setSaved(true); setTimeout(() => setSaved(false), 2000); setSaving(false);
   }
 
-  async function createToken() {
-    setCreatingToken(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data } = await supabase.from("api_tokens").insert([{ user_id: user.id, name: newTokenName || "Token principal" }]).select().single();
-    if (data) { setApiTokens(prev => [...prev, data]); setVisibleToken(data.id); setNewTokenName(""); }
-    setCreatingToken(false);
-  }
-
-  async function deleteToken(id: string) {
-    await supabase.from("api_tokens").delete().eq("id", id);
-    setApiTokens(prev => prev.filter(t => t.id !== id));
-  }
-
-  async function sendInvitation() {
-    if (!inviteEmail.trim()) return;
-    setInviting(true);
-    await fetch("/api/invitations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: inviteEmail }) });
-    const res = await fetch("/api/invitations");
-    setInvitations(await res.json());
-    setInviteEmail(""); setInviting(false); setInviteSent(true); setTimeout(() => setInviteSent(false), 3000);
-  }
-
-  function copyToken(token: string, id: string) {
-    navigator.clipboard.writeText(token); setCopied(id); setTimeout(() => setCopied(null), 2000);
+  async function changePassword() {
+    if (newPassword.length < 6) { setPasswordMsg("Mínimo 6 caracteres"); return; }
+    if (newPassword !== confirmPassword) { setPasswordMsg("Las contraseñas no coinciden"); return; }
+    setChangingPassword(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) { setPasswordMsg("Error: " + error.message); }
+    else { setPasswordMsg("✓ Contraseña actualizada"); setNewPassword(""); setConfirmPassword(""); }
+    setChangingPassword(false);
+    setTimeout(() => setPasswordMsg(""), 4000);
   }
 
   if (!profile) return <div style={{ padding: "40px", color: "var(--text-3)" }}>Cargando...</div>;
 
+  const tokenLimit = profile.plan === "pro" ? 50000 : profile.plan === "agency" ? 999999 : 10000;
+  const tokenPct   = Math.min(100, Math.round(((profile.tokens_used || 0) / tokenLimit) * 100));
+
   return (
-    <div style={{ padding: "24px 32px", maxWidth: "760px" }}>
+    <div style={{ padding: "24px 32px", maxWidth: "700px" }}>
       <div style={{ marginBottom: "28px" }}>
         <h1 style={{ fontSize: "1.4rem", fontWeight: 700, marginBottom: "4px" }}>⚙️ Configuración</h1>
-        <p style={{ color: "var(--text-3)", fontSize: "0.875rem" }}>Gestiona tu cuenta, API keys e invitaciones</p>
+        <p style={{ color: "var(--text-3)", fontSize: "0.875rem" }}>Gestiona tu cuenta y preferencias</p>
       </div>
 
       {/* Tabs */}
       <div style={{ display: "flex", gap: "4px", marginBottom: "24px", background: "var(--bg-2)", padding: "4px", borderRadius: "10px", width: "fit-content" }}>
-        {(["perfil", "api", "invitaciones"] as Tab[]).map(t => (
+        {(["perfil", "seguridad", "plan"] as Tab[]).map(t => (
           <button key={t} onClick={() => setTab(t)} style={{
             padding: "7px 20px", borderRadius: "7px", border: "none", cursor: "pointer",
             background: tab === t ? "var(--surface)" : "transparent",
             color: tab === t ? "var(--text-1)" : "var(--text-3)",
             fontWeight: tab === t ? 600 : 400, fontSize: "0.85rem",
-            boxShadow: tab === t ? "0 1px 4px rgba(0,0,0,0.3)" : "none", textTransform: "capitalize"
-          }}>{t === "perfil" ? "👤 Perfil" : t === "api" ? "🔑 API Keys" : "👥 Invitaciones"}</button>
+            boxShadow: tab === t ? "0 1px 4px rgba(0,0,0,0.3)" : "none"
+          }}>
+            {t === "perfil" ? "👤 Perfil" : t === "seguridad" ? "🔒 Seguridad" : "⭐ Mi Plan"}
+          </button>
         ))}
       </div>
 
-      {/* Perfil */}
+      {/* PERFIL */}
       {tab === "perfil" && (
         <div style={{ background: "var(--surface)", borderRadius: "12px", border: "1px solid var(--border)", padding: "28px" }}>
+
+          {/* Avatar */}
+          <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "24px", paddingBottom: "20px", borderBottom: "1px solid var(--border)" }}>
+            <div style={{ width: "56px", height: "56px", borderRadius: "50%", background: "var(--accent-dim)", border: "1px solid rgba(59,127,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.4rem", fontWeight: 700, color: "var(--accent)" }}>
+              {(name || profile.email || "?")[0].toUpperCase()}
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: "1rem", color: "var(--text-1)" }}>{name || "Sin nombre"}</div>
+              <div style={{ fontSize: "0.82rem", color: "var(--text-3)" }}>{profile.email}</div>
+            </div>
+          </div>
+
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             {[
-              { label: "Nombre completo", val: name, set: setName, placeholder: "Tu nombre" },
-              { label: "Empresa",         val: company, set: setCompany, placeholder: "Tu empresa" },
-              { label: "Teléfono",        val: phone, set: setPhone, placeholder: "+34 600 000 000" },
+              { label: "Nombre completo", val: name,    set: setName,    placeholder: "Tu nombre y apellidos" },
+              { label: "Empresa",         val: company, set: setCompany, placeholder: "Nombre de tu empresa" },
+              { label: "Sector",          val: sector,  set: setSector,  placeholder: "Ej: Hostelería, Tecnología..." },
             ].map(f => (
               <div key={f.label}>
-                <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--text-3)", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>{f.label}</label>
+                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>{f.label}</label>
                 <input value={f.val} onChange={e => f.set(e.target.value)} placeholder={f.placeholder}
                   style={{ width: "100%", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: "8px", padding: "10px 14px", color: "var(--text-1)", fontSize: "0.9rem", outline: "none", boxSizing: "border-box" }} />
               </div>
             ))}
             <div>
-              <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "var(--text-3)", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>Email</label>
+              <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>Email</label>
               <input value={profile.email || ""} disabled
                 style={{ width: "100%", background: "var(--bg-3)", border: "1px solid var(--border)", borderRadius: "8px", padding: "10px 14px", color: "var(--text-3)", fontSize: "0.9rem", outline: "none", boxSizing: "border-box" }} />
             </div>
             <button onClick={saveProfile} disabled={saving}
-              style={{ padding: "11px 24px", borderRadius: "8px", border: "none", background: saved ? "var(--green)" : "var(--accent)", color: "white", fontWeight: 700, cursor: "pointer", width: "fit-content" }}>
+              style={{ padding: "11px 24px", borderRadius: "8px", border: "none", background: saved ? "#3fb950" : "var(--accent)", color: "white", fontWeight: 700, cursor: "pointer", width: "fit-content", transition: "background 0.2s" }}>
               {saving ? "Guardando..." : saved ? "✓ Guardado" : "Guardar cambios"}
             </button>
           </div>
         </div>
       )}
 
-      {/* API Keys */}
-      {tab === "api" && (
+      {/* SEGURIDAD */}
+      {tab === "seguridad" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <div style={{ background: "var(--surface)", borderRadius: "12px", border: "1px solid var(--border)", padding: "24px" }}>
-            <h3 style={{ fontSize: "0.9rem", fontWeight: 700, color: "var(--text-1)", marginBottom: "6px" }}>Crear nuevo token</h3>
-            <p style={{ fontSize: "0.82rem", color: "var(--text-3)", marginBottom: "16px" }}>Usa el token para llamar a las apps desde tu propio código</p>
-            <div style={{ display: "flex", gap: "10px" }}>
-              <input value={newTokenName} onChange={e => setNewTokenName(e.target.value)} placeholder="Nombre del token (ej: Mi web)"
-                style={{ flex: 1, background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: "8px", padding: "9px 14px", color: "var(--text-1)", fontSize: "0.85rem", outline: "none" }} />
-              <button onClick={createToken} disabled={creatingToken}
-                style={{ background: "var(--accent)", border: "none", color: "white", padding: "9px 20px", borderRadius: "8px", cursor: "pointer", fontWeight: 700, fontSize: "0.85rem" }}>
-                {creatingToken ? "..." : "Crear"}
+          <div style={{ background: "var(--surface)", borderRadius: "12px", border: "1px solid var(--border)", padding: "28px" }}>
+            <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "6px" }}>Cambiar contraseña</h3>
+            <p style={{ fontSize: "0.82rem", color: "var(--text-3)", marginBottom: "20px" }}>Mínimo 6 caracteres</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <input
+                type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                placeholder="Nueva contraseña"
+                style={{ width: "100%", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: "8px", padding: "10px 14px", color: "var(--text-1)", fontSize: "0.9rem", outline: "none", boxSizing: "border-box" }}
+              />
+              <input
+                type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+                placeholder="Confirmar nueva contraseña"
+                style={{ width: "100%", background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: "8px", padding: "10px 14px", color: "var(--text-1)", fontSize: "0.9rem", outline: "none", boxSizing: "border-box" }}
+              />
+              {passwordMsg && (
+                <div style={{ fontSize: "0.82rem", color: passwordMsg.startsWith("✓") ? "#3fb950" : "#ef4444", fontWeight: 600 }}>{passwordMsg}</div>
+              )}
+              <button onClick={changePassword} disabled={changingPassword || !newPassword}
+                style={{ padding: "10px 24px", borderRadius: "8px", border: "none", background: "var(--accent)", color: "white", fontWeight: 700, cursor: "pointer", width: "fit-content", opacity: !newPassword ? 0.5 : 1 }}>
+                {changingPassword ? "Actualizando..." : "Cambiar contraseña"}
               </button>
             </div>
           </div>
 
-          {apiTokens.length > 0 && (
-            <div style={{ background: "var(--surface)", borderRadius: "12px", border: "1px solid var(--border)", overflow: "hidden" }}>
-              {apiTokens.map(t => (
-                <div key={t.id} style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: "12px" }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--text-1)", marginBottom: "4px" }}>{t.name}</div>
-                    <code style={{ fontSize: "0.75rem", color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>
-                      {visibleToken === t.id ? t.token : `${t.token.slice(0,8)}${"•".repeat(20)}${t.token.slice(-6)}`}
-                    </code>
-                  </div>
-                  <div style={{ display: "flex", gap: "6px" }}>
-                    <button onClick={() => setVisibleToken(visibleToken === t.id ? null : t.id)}
-                      style={{ background: "var(--bg-2)", border: "1px solid var(--border)", color: "var(--text-3)", padding: "5px 10px", borderRadius: "6px", cursor: "pointer", fontSize: "0.72rem" }}>
-                      {visibleToken === t.id ? "Ocultar" : "Ver"}
-                    </button>
-                    <button onClick={() => copyToken(t.token, t.id)}
-                      style={{ background: "var(--bg-2)", border: "1px solid var(--border)", color: copied === t.id ? "var(--green)" : "var(--text-2)", padding: "5px 10px", borderRadius: "6px", cursor: "pointer", fontSize: "0.72rem", fontWeight: 600 }}>
-                      {copied === t.id ? "✓" : "Copiar"}
-                    </button>
-                    <button onClick={() => deleteToken(t.id)}
-                      style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "rgb(239,68,68)", padding: "5px 8px", borderRadius: "6px", cursor: "pointer", fontSize: "0.72rem" }}>
-                      🗑
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div style={{ background: "rgba(59,127,255,0.06)", borderRadius: "10px", border: "1px solid rgba(59,127,255,0.2)", padding: "16px" }}>
-            <p style={{ fontSize: "0.82rem", color: "var(--text-2)", margin: "0 0 8px 0", fontWeight: 600 }}>📖 Uso de la API</p>
-            <pre style={{ fontSize: "0.78rem", color: "var(--text-3)", margin: 0, fontFamily: "var(--font-mono)", lineHeight: 1.6 }}>{`POST https://tudominio.com/api/public/{token}
-Content-Type: application/json
-
-{
-  "app_id": "generador-presupuestos",
-  "input": "Descripción del trabajo..."
-}`}</pre>
+          <div style={{ background: "var(--surface)", borderRadius: "12px", border: "1px solid var(--border)", padding: "24px" }}>
+            <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "6px" }}>Sesión activa</h3>
+            <p style={{ fontSize: "0.82rem", color: "var(--text-3)", marginBottom: "12px" }}>Estás conectado como <strong>{profile.email}</strong></p>
+            <p style={{ fontSize: "0.78rem", color: "var(--text-3)" }}>
+              Cuenta creada el {profile.created_at ? new Date(profile.created_at).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" }) : "—"}
+            </p>
           </div>
         </div>
       )}
 
-      {/* Invitaciones */}
-      {tab === "invitaciones" && (
+      {/* PLAN */}
+      {tab === "plan" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <div style={{ background: "var(--surface)", borderRadius: "12px", border: "1px solid var(--border)", padding: "24px" }}>
-            <h3 style={{ fontSize: "0.9rem", fontWeight: 700, marginBottom: "6px" }}>Invitar colaborador</h3>
-            <p style={{ fontSize: "0.82rem", color: "var(--text-3)", marginBottom: "16px" }}>Envía un enlace de registro a alguien de tu equipo</p>
-            <div style={{ display: "flex", gap: "10px" }}>
-              <input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="email@empresa.com"
-                style={{ flex: 1, background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: "8px", padding: "9px 14px", color: "var(--text-1)", fontSize: "0.85rem", outline: "none" }} />
-              <button onClick={sendInvitation} disabled={inviting || !inviteEmail.trim()}
-                style={{ background: inviteSent ? "var(--green)" : "var(--accent)", border: "none", color: "white", padding: "9px 20px", borderRadius: "8px", cursor: "pointer", fontWeight: 700, fontSize: "0.85rem" }}>
-                {inviteSent ? "✓ Enviada" : inviting ? "..." : "Invitar"}
-              </button>
+          <div style={{ background: "var(--surface)", borderRadius: "12px", border: "1px solid var(--border)", padding: "28px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
+              <div>
+                <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", marginBottom: "4px" }}>Plan actual</div>
+                <div style={{ fontSize: "1.6rem", fontWeight: 800, color: "var(--accent)", textTransform: "capitalize" }}>{profile.plan || "Free"}</div>
+              </div>
+              <a href="mailto:oscarherruzom@gmail.com" style={{ background: "var(--accent)", color: "white", textDecoration: "none", padding: "8px 18px", borderRadius: "8px", fontWeight: 700, fontSize: "0.85rem" }}>
+                Mejorar plan →
+              </a>
             </div>
+
+            <div style={{ marginBottom: "8px", display: "flex", justifyContent: "space-between", fontSize: "0.82rem" }}>
+              <span style={{ color: "var(--text-2)", fontWeight: 600 }}>⚡ Tokens usados</span>
+              <span style={{ color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>
+                {(profile.tokens_used || 0).toLocaleString()} / {tokenLimit.toLocaleString()}
+              </span>
+            </div>
+            <div style={{ height: "8px", background: "var(--bg-3)", borderRadius: "100px", overflow: "hidden", marginBottom: "6px" }}>
+              <div style={{ height: "100%", borderRadius: "100px", width: `${tokenPct}%`, background: tokenPct > 85 ? "#ef4444" : tokenPct > 60 ? "#ffa657" : "var(--accent)", transition: "width 0.3s" }} />
+            </div>
+            <div style={{ fontSize: "0.72rem", color: "var(--text-3)" }}>{tokenPct}% usado</div>
           </div>
 
-          {invitations.length > 0 && (
-            <div style={{ background: "var(--surface)", borderRadius: "12px", border: "1px solid var(--border)", overflow: "hidden" }}>
-              <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", fontSize: "0.78rem", fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase" }}>
-                Invitaciones enviadas
-              </div>
-              {invitations.map(inv => (
-                <div key={inv.id} style={{ padding: "12px 20px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: "0.85rem", color: "var(--text-1)" }}>{inv.email}</span>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span style={{ fontSize: "0.68rem", color: "var(--text-3)" }}>
-                      {new Date(inv.created_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}
-                    </span>
-                    <span style={{
-                      padding: "2px 8px", borderRadius: "100px", fontSize: "0.68rem", fontWeight: 700,
-                      background: inv.accepted ? "rgba(63,185,80,0.1)" : "var(--bg-3)",
-                      color: inv.accepted ? "var(--green)" : "var(--text-3)",
-                      border: `1px solid ${inv.accepted ? "rgba(63,185,80,0.3)" : "var(--border)"}`
-                    }}>
-                      {inv.accepted ? "✓ Aceptada" : "Pendiente"}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <div style={{ background: "var(--surface)", borderRadius: "12px", border: "1px solid var(--border)", padding: "24px" }}>
+            <h3 style={{ fontSize: "0.9rem", fontWeight: 700, marginBottom: "12px" }}>¿Necesitas más recursos?</h3>
+            <p style={{ fontSize: "0.84rem", color: "var(--text-3)", marginBottom: "16px", lineHeight: 1.6 }}>
+              Escríbeme directamente y te configuro el plan que mejor se adapte a tu negocio.
+            </p>
+            <a href="mailto:oscarherruzom@gmail.com" style={{ display: "inline-block", background: "var(--bg-2)", border: "1px solid var(--border)", color: "var(--text-1)", textDecoration: "none", padding: "9px 20px", borderRadius: "8px", fontWeight: 600, fontSize: "0.85rem" }}>
+              Contactar a Oscar →
+            </a>
+          </div>
         </div>
       )}
     </div>

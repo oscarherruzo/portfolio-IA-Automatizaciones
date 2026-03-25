@@ -18,8 +18,9 @@ const NAV_TOOLS = [
 ];
 
 const NAV_BOTTOM = [
-  { href: "/dashboard/help",         icon: "❓", label: "Ayuda" },
-  { href: "/dashboard/settings",     icon: "⚙", label: "Configuración" },
+  { href: "/dashboard/notifications", icon: "🔔", label: "Notificaciones" },
+  { href: "/dashboard/help",          icon: "❓", label: "Ayuda" },
+  { href: "/dashboard/settings",      icon: "⚙", label: "Configuración" },
 ];
 
 type Profile = { full_name?: string; email?: string; plan?: string; tokens_used?: number; company_name?: string } | null;

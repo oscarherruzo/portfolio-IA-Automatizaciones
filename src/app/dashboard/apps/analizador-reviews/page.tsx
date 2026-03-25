@@ -1,66 +1,162 @@
 "use client";
-import { useState } from "react";
-import SaveResultButton from "@/components/apps/SaveResultButton";
-type Review = { texto: string; sentimiento: string; respuesta: string; fecha: string };
+import { useState, useEffect } from "react";
+
+type Review = { id: string; author?: string; rating?: number; content: string; sentiment?: string; response?: string; responded: boolean; source: string; review_date?: string; created_at: string };
+
+const SENTIMENT_STYLE: Record<string, { color: string; bg: string; label: string; icon: string }> = {
+  positivo: { color: "#3fb950", bg: "rgba(63,185,80,0.1)",  label: "Positivo", icon: "😊" },
+  neutro:   { color: "#ffa657", bg: "rgba(255,166,87,0.1)", label: "Neutro",   icon: "😐" },
+  negativo: { color: "#ef4444", bg: "rgba(239,68,68,0.1)",  label: "Negativo", icon: "😞" },
+};
+
 export default function AnalizadorReviewsPage() {
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [reviews, setReviews] = useState<Review[]>([]);
-  async function analizar() {
-    if (!input.trim()) return;
-    setLoading(true);
-    try {
-      const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [{ role: "user", content: `Analiza esta reseña y responde en este formato exacto:\nSENTIMIENTO: [positivo/neutro/negativo]\nRESPUESTA: [respuesta profesional para publicar]\n\nReseña: "${input}"` }] }) });
-      const data = await res.json();
-      if (data.message) {
-        const lines = data.message.split("\n");
-        const sentLine = lines.find((l: string) => l.startsWith("SENTIMIENTO:")) || "";
-        const sent = sentLine.replace("SENTIMIENTO:", "").trim().toLowerCase();
-        const respIdx = data.message.indexOf("RESPUESTA:");
-        const resp = respIdx >= 0 ? data.message.substring(respIdx + 10).trim() : data.message;
-        setReviews(prev => [{ texto: input, sentimiento: sent || "neutro", respuesta: resp, fecha: new Date().toLocaleDateString("es-ES") }, ...prev]);
-        setInput("");
-      }
-    } finally { setLoading(false); }
+  const [reviews, setReviews]   = useState<Review[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [input, setInput]       = useState("");
+  const [author, setAuthor]     = useState("");
+  const [rating, setRating]     = useState(5);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [respondingId, setRespondingId] = useState<string | null>(null);
+  const [filter, setFilter]     = useState("todas");
+  const [toast, setToast]       = useState("");
+
+  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(""), 3000); }
+
+  async function loadReviews() {
+    const res = await fetch("/api/reviews");
+    const data = await res.json();
+    setReviews(Array.isArray(data) ? data : []);
+    setLoading(false);
   }
-  const positivas = reviews.filter(r => r.sentimiento.includes("positivo")).length;
-  const negativas = reviews.filter(r => r.sentimiento.includes("negativo")).length;
-  const sentColor = (s: string) => s.includes("positivo") ? "#3fb950" : s.includes("negativo") ? "#f85149" : "#ffa657";
-  const sentIcon = (s: string) => s.includes("positivo") ? "😊" : s.includes("negativo") ? "😞" : "😐";
+
+  useEffect(() => { loadReviews(); }, []);
+
+  async function analyzeAndSave() {
+    if (!input.trim()) return;
+    setAnalyzing(true);
+    const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [{ role: "user", content: `Analiza esta reseña y responde SOLO en este JSON sin markdown:\n{"sentiment":"positivo|neutro|negativo","response":"respuesta profesional para publicar"}\n\nReseña: "${input}"` }] }) });
+    const data = await res.json();
+    let sentiment = "neutro";
+    let response = "";
+    if (data.message) {
+      try {
+        const parsed = JSON.parse(data.message.replace(/```json|```/g, "").trim());
+        sentiment = parsed.sentiment || "neutro";
+        response = parsed.response || "";
+      } catch { sentiment = "neutro"; response = data.message; }
+    }
+    const saveRes = await fetch("/api/reviews", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: input, author: author || "Anónimo", rating, sentiment, response, source: "google", review_date: new Date().toISOString().split("T")[0] }) });
+    if (saveRes.ok) { await loadReviews(); setInput(""); setAuthor(""); setRating(5); showToast("✓ Reseña analizada y guardada"); }
+    setAnalyzing(false);
+  }
+
+  async function generateResponse(review: Review) {
+    setRespondingId(review.id);
+    const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [{ role: "user", content: `Genera una respuesta profesional, empática y que cuide la reputación del negocio para esta reseña ${review.sentiment || ""}:\n"${review.content}"` }] }) });
+    const data = await res.json();
+    if (data.message) {
+      await fetch("/api/reviews", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: review.id, response: data.message, responded: true }) });
+      setReviews(prev => prev.map(r => r.id === review.id ? { ...r, response: data.message, responded: true } : r));
+      showToast("✓ Respuesta generada");
+    }
+    setRespondingId(null);
+  }
+
+  const filtered = reviews.filter(r => filter === "todas" || r.sentiment === filter || (filter === "sin-responder" && !r.responded));
+  const stats = { total: reviews.length, positivas: reviews.filter(r => r.sentiment === "positivo").length, negativas: reviews.filter(r => r.sentiment === "negativo").length, pendientes: reviews.filter(r => !r.responded).length, avgRating: reviews.filter(r => r.rating).length > 0 ? (reviews.filter(r => r.rating).reduce((a, r) => a + (r.rating || 0), 0) / reviews.filter(r => r.rating).length).toFixed(1) : "—" };
+
+  const inp = { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: "8px", padding: "9px 12px", color: "var(--text-1)", fontSize: "0.85rem", outline: "none", width: "100%", boxSizing: "border-box" as const };
+
   return (
-    <div style={{ padding: "24px 32px", maxWidth: "1000px" }}>
-      <div style={{ marginBottom: "24px" }}><h1 style={{ fontSize: "1.4rem", fontWeight: 700, marginBottom: "4px" }}>⭐ Analizador de Reseñas</h1><p style={{ color: "#7d8590", fontSize: "0.875rem" }}>Analiza el sentimiento y genera respuestas profesionales automáticamente</p></div>
-      {reviews.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "10px", marginBottom: "24px" }}>
-          {[{ label: "Analizadas", value: reviews.length, color: "#2f81f7" }, { label: "Positivas", value: positivas, color: "#3fb950" }, { label: "Negativas", value: negativas, color: "#f85149" }].map(s => (
-            <div key={s.label} className="card" style={{ padding: "14px", textAlign: "center" }}><div style={{ fontSize: "0.72rem", color: "#7d8590", textTransform: "uppercase", marginBottom: "4px" }}>{s.label}</div><div style={{ fontSize: "1.6rem", fontWeight: 700, fontFamily: "'DM Mono',monospace", color: s.color }}>{s.value}</div></div>
-          ))}
-        </div>
-      )}
-      <div className="card" style={{ padding: "16px", marginBottom: "20px" }}>
-        <label style={{ fontSize: "0.78rem", fontWeight: 600, display: "block", marginBottom: "8px" }}>Pega aquí una reseña para analizar</label>
-        <textarea value={input} onChange={e => setInput(e.target.value)} placeholder='"Fui a este restaurante y la verdad es que la comida estaba buena pero el servicio dejó mucho que desear..."' rows={4} style={{ width: "100%", padding: "10px 12px", resize: "vertical", marginBottom: "10px" }} />
-        <button className="btn-primary" onClick={analizar} disabled={loading || !input.trim()} style={{ width: "100%" }}>{loading ? "Analizando con IA..." : "⭐ Analizar y generar respuesta"}</button>
+    <div style={{ padding: "24px 32px", maxWidth: "1100px" }}>
+      {toast && <div style={{ position: "fixed", top: "24px", right: "24px", zIndex: 9999, background: "var(--accent)", color: "white", padding: "10px 20px", borderRadius: "10px", fontWeight: 600 }}>{toast}</div>}
+
+      <div style={{ marginBottom: "20px" }}>
+        <h1 style={{ fontSize: "1.4rem", fontWeight: 700, marginBottom: "4px" }}>⭐ Analizador de Reseñas</h1>
+        <p style={{ color: "var(--text-3)", fontSize: "0.875rem" }}>{stats.total} reseñas · {stats.pendientes} sin responder</p>
       </div>
-      {reviews.map((r, i) => (
-        <div key={i} className="card" style={{ padding: "0", marginBottom: "12px" }}>
-          <div style={{ padding: "12px 16px", borderBottom: "1px solid #30363d", display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "1.1rem" }}>{sentIcon(r.sentimiento)}</span>
-            <span style={{ fontSize: "0.78rem", fontWeight: 700, color: sentColor(r.sentimiento), textTransform: "uppercase" }}>{r.sentimiento}</span>
-            <span style={{ marginLeft: "auto", fontSize: "0.72rem", color: "#7d8590" }}>{r.fecha}</span>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: "10px", marginBottom: "24px" }}>
+        {[
+          { label: "Total",       val: stats.total,     color: "var(--accent)" },
+          { label: "Positivas",   val: stats.positivas, color: "var(--green)" },
+          { label: "Negativas",   val: stats.negativas, color: "#ef4444" },
+          { label: "Sin responder",val: stats.pendientes,color: "var(--amber)" },
+          { label: "Nota media",  val: stats.avgRating, color: "#fbbf24" },
+        ].map(s => (
+          <div key={s.label} style={{ background: "var(--surface)", padding: "14px", borderRadius: "10px", border: "1px solid var(--border)" }}>
+            <div style={{ fontSize: "0.62rem", color: "var(--text-3)", fontWeight: 700, textTransform: "uppercase", marginBottom: "4px" }}>{s.label}</div>
+            <div style={{ fontSize: "1.4rem", fontWeight: 800, color: s.color }}>{s.val}</div>
           </div>
-          <div style={{ padding: "14px 16px", borderBottom: "1px solid #30363d" }}>
-            <div style={{ fontSize: "0.72rem", color: "#7d8590", fontWeight: 600, textTransform: "uppercase", marginBottom: "6px" }}>Reseña original</div>
-            <div style={{ fontSize: "0.83rem", color: "#c9d1d9", lineHeight: 1.5, fontStyle: "italic" }}>"{r.texto}"</div>
-          </div>
-          <div style={{ padding: "14px 16px" }}>
-            <div style={{ fontSize: "0.72rem", color: "#3fb950", fontWeight: 600, textTransform: "uppercase", marginBottom: "6px" }}>Respuesta generada</div>
-            <div style={{ fontSize: "0.83rem", lineHeight: 1.6, marginBottom: "10px" }}>{r.respuesta}</div>
-            <button className="btn-secondary" style={{ fontSize: "0.75rem" }} onClick={() => navigator.clipboard.writeText(r.respuesta)}>Copiar respuesta</button>
-                      <SaveResultButton appId="analizador-reviews" appName="Analizador de Reseñas" outputText={r.respuesta} inputText={r.texto} />
+        ))}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "340px 1fr", gap: "20px" }}>
+        {/* Formulario */}
+        <div style={{ background: "var(--surface)", borderRadius: "12px", border: "1px solid var(--border)", padding: "20px", height: "fit-content" }}>
+          <div style={{ fontWeight: 700, marginBottom: "14px" }}>Añadir reseña</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "8px", alignItems: "center" }}>
+              <input value={author} onChange={e => setAuthor(e.target.value)} placeholder="Nombre del autor" style={inp} />
+              <div style={{ display: "flex", gap: "2px" }}>
+                {[1,2,3,4,5].map(n => (
+                  <button key={n} onClick={() => setRating(n)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.1rem", opacity: n <= rating ? 1 : 0.3 }}>⭐</button>
+                ))}
+              </div>
+            </div>
+            <textarea value={input} onChange={e => setInput(e.target.value)} placeholder="Pega el texto de la reseña aquí..." rows={5} style={{ ...inp, resize: "none" }} />
+            <button onClick={analyzeAndSave} disabled={analyzing || !input.trim()} style={{ padding: "10px", background: analyzing || !input.trim() ? "var(--bg-3)" : "var(--accent)", border: "none", color: analyzing || !input.trim() ? "var(--text-3)" : "white", borderRadius: "8px", cursor: "pointer", fontWeight: 700 }}>
+              {analyzing ? "Analizando con IA..." : "✨ Analizar y guardar"}
+            </button>
           </div>
         </div>
-      ))}
+
+        {/* Lista */}
+        <div>
+          <div style={{ display: "flex", gap: "6px", marginBottom: "12px", flexWrap: "wrap" }}>
+            {[{ val: "todas", label: "Todas" }, { val: "positivo", label: "😊 Positivas" }, { val: "neutro", label: "😐 Neutras" }, { val: "negativo", label: "😞 Negativas" }, { val: "sin-responder", label: "⏳ Sin responder" }].map(f => (
+              <button key={f.val} onClick={() => setFilter(f.val)} style={{ padding: "5px 12px", borderRadius: "100px", border: "1px solid", borderColor: filter === f.val ? "var(--accent)" : "var(--border)", background: filter === f.val ? "var(--accent-dim)" : "var(--bg-2)", color: filter === f.val ? "var(--accent)" : "var(--text-3)", cursor: "pointer", fontSize: "0.75rem", fontWeight: 600 }}>{f.label}</button>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            {loading ? (
+              <div style={{ color: "var(--text-3)", padding: "20px" }}>Cargando...</div>
+            ) : filtered.length === 0 ? (
+              <div style={{ background: "var(--surface)", borderRadius: "12px", border: "1px solid var(--border)", padding: "40px", textAlign: "center", color: "var(--text-3)" }}>
+                <div style={{ fontSize: "2rem", marginBottom: "8px" }}>⭐</div>
+                <div style={{ fontWeight: 600 }}>Sin reseñas {filter !== "todas" ? "en este filtro" : "todavía"}</div>
+              </div>
+            ) : filtered.map(r => {
+              const st = SENTIMENT_STYLE[r.sentiment || "neutro"] || SENTIMENT_STYLE.neutro;
+              return (
+                <div key={r.id} style={{ background: "var(--surface)", borderRadius: "12px", border: `1px solid ${r.responded ? "var(--border)" : "rgba(255,166,87,0.3)"}`, padding: "16px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                      <span style={{ fontWeight: 600, color: "var(--text-1)" }}>{r.author || "Anónimo"}</span>
+                      {r.rating && <span style={{ fontSize: "0.78rem" }}>{"⭐".repeat(r.rating)}</span>}
+                      <span style={{ padding: "2px 8px", borderRadius: "100px", fontSize: "0.65rem", fontWeight: 700, background: st.bg, color: st.color }}>{st.icon} {st.label}</span>
+                    </div>
+                    {!r.responded && <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--amber)", background: "rgba(255,166,87,0.1)", padding: "2px 8px", borderRadius: "100px" }}>SIN RESPONDER</span>}
+                  </div>
+                  <p style={{ fontSize: "0.85rem", color: "var(--text-2)", lineHeight: 1.6, marginBottom: "10px" }}>{r.content}</p>
+                  {r.response ? (
+                    <div style={{ background: "rgba(47,129,247,0.06)", border: "1px solid rgba(47,129,247,0.2)", borderRadius: "8px", padding: "10px 14px" }}>
+                      <div style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--accent)", marginBottom: "4px" }}>RESPUESTA:</div>
+                      <div style={{ fontSize: "0.82rem", color: "var(--text-2)", lineHeight: 1.5 }}>{r.response}</div>
+                      <button onClick={() => navigator.clipboard.writeText(r.response || "")} style={{ marginTop: "6px", background: "none", border: "none", color: "var(--accent)", cursor: "pointer", fontSize: "0.72rem" }}>Copiar respuesta</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => generateResponse(r)} disabled={respondingId === r.id} style={{ padding: "6px 14px", background: "var(--accent-dim)", border: "1px solid var(--accent)", color: "var(--accent)", borderRadius: "7px", cursor: "pointer", fontSize: "0.78rem", fontWeight: 600, opacity: respondingId === r.id ? 0.6 : 1 }}>
+                      {respondingId === r.id ? "Generando..." : "✨ Generar respuesta"}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

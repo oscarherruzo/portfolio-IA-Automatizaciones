@@ -41,9 +41,9 @@ export default async function DashboardPage() {
     supabase.from("profiles").select("*").eq("id", user.id).single(),
     supabase.from("automations").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
     supabase.from("automation_runs").select("*, automations(name,type)").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5),
-    supabase.from("user_app_access").select("app_id").eq("user_id", user.id),
-    supabase.from("saved_results").select("id, app_name, title, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(4),
-    supabase.from("notifications").select("*").eq("user_id", user.id).eq("read", false).order("created_at", { ascending: false }).limit(5),
+    supabase.from("user_app_access").select("app_id").eq("user_id", user.id).then(r => ({ data: r.data || [] })),
+    supabase.from("saved_results").select("id, app_name, title, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(4).then(r => ({ data: r.data || [] })),
+    supabase.from("notifications").select("*").eq("user_id", user.id).eq("read", false).order("created_at", { ascending: false }).limit(5).then(r => ({ data: r.data || [] })),
   ]);
 
   const allRuns      = recentRuns || [];
