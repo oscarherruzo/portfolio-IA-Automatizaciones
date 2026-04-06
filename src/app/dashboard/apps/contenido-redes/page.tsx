@@ -1,60 +1,141 @@
 "use client";
 import { useState } from "react";
-import SaveResultButton from "@/components/apps/SaveResultButton";
-const REDES = [{ id: "linkedin", label: "LinkedIn", icon: "💼", color: "#0077b5" }, { id: "instagram", label: "Instagram", icon: "📸", color: "#e1306c" }, { id: "twitter", label: "Twitter/X", icon: "🐦", color: "#1da1f2" }, { id: "facebook", label: "Facebook", icon: "👥", color: "#4267b2" }];
-const TONOS = ["Profesional", "Cercano", "Inspirador", "Humorístico", "Urgente"];
+
+const REDES = [
+  { id: "linkedin", label: "LinkedIn", desc: "Profesional, reflexivo, con valor" },
+  { id: "instagram", label: "Instagram", desc: "Visual, emocional, con hashtags" },
+  { id: "twitter", label: "X / Twitter", desc: "Directo, conciso, impactante" },
+  { id: "facebook", label: "Facebook", desc: "Conversacional, cercano" },
+];
+const TONOS = ["Profesional","Inspirador","Educativo","Entretenido","Urgente"];
+
+const S: Record<string, React.CSSProperties> = {
+  page:  { padding: "32px 40px", maxWidth: "1000px" },
+  h1:    { fontSize: "1.3rem", fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em", marginBottom: "4px" },
+  sub:   { color: "var(--text-3)", fontSize: "0.82rem" },
+  card:  { background: "var(--surface)", borderRadius: "var(--radius)", border: "1px solid var(--border)", padding: "24px" },
+  label: { fontSize: "0.7rem", fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: "6px" },
+  input: { background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: "8px", padding: "10px 14px", color: "var(--text-1)", fontSize: "0.875rem", outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "var(--font-body)" },
+};
+
 export default function ContenidoRedesPage() {
-  const [red, setRed] = useState("linkedin");
-  const [tono, setTono] = useState("Profesional");
-  const [tema, setTema] = useState("");
+  const [red, setRed]       = useState("linkedin");
+  const [tono, setTono]     = useState("Profesional");
+  const [tema, setTema]     = useState("");
+  const [contexto, setContexto] = useState("");
   const [output, setOutput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [history, setHistory] = useState<{ red: string; tema: string; content: string }[]>([]);
-  async function generar() {
+  const [generating, setGenerating] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const redData = REDES.find(r => r.id === red)!;
+
+  async function generate() {
     if (!tema.trim()) return;
-    setLoading(true); setOutput("");
-    const redInfo = REDES.find(r => r.id === red);
-    try {
-      const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [{ role: "user", content: `Crea un post para ${redInfo?.label} sobre: "${tema}". Tono: ${tono}. Sigue el formato correcto para ${redInfo?.label} con hashtags si aplica.` }] }) });
-      const data = await res.json();
-      if (data.message) { setOutput(data.message); setHistory(h => [{ red: redInfo?.label || "", tema, content: data.message }, ...h.slice(0, 4)]); }
-    } finally { setLoading(false); }
+    setGenerating(true); setOutput("");
+    const res = await fetch("/api/chat", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: [{
+          role: "user",
+          content: `Eres un experto en marketing de contenidos y social media. Crea un post para ${redData.label}.\n\nTema: ${tema}\n${contexto ? `Contexto adicional: ${contexto}` : ""}\nTono: ${tono}\nEstilo ${redData.label}: ${redData.desc}\n\nCrea el post completo optimizado para ${redData.label}, incluyendo emojis si corresponde${red === "instagram" ? ", hashtags relevantes al final" : ""}${red === "twitter" ? " (máx 280 caracteres)" : ""}. Que sea directo, auténtico y que genere engagement.`
+        }]
+      })
+    });
+    const data = await res.json();
+    if (data.message) setOutput(data.message);
+    setGenerating(false);
   }
-  const redActiva = REDES.find(r => r.id === red);
+
+  function copy() {
+    navigator.clipboard.writeText(output);
+    setCopied(true); setTimeout(() => setCopied(false), 2000);
+  }
+
   return (
-    <div style={{ padding: "24px 32px", maxWidth: "1100px" }}>
-      <div style={{ marginBottom: "28px" }}><h1 style={{ fontSize: "1.4rem", fontWeight: 700, marginBottom: "4px" }}>✍️ Generador de Contenido</h1><p style={{ color: "#7d8590", fontSize: "0.875rem" }}>Posts y copys para redes sociales en segundos</p></div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <div><label style={{ fontSize: "0.78rem", fontWeight: 600, display: "block", marginBottom: "8px" }}>Red social</label><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>{REDES.map(r => <button key={r.id} onClick={() => setRed(r.id)} style={{ padding: "10px", borderRadius: "8px", border: `1px solid ${red === r.id ? r.color : "#30363d"}`, background: red === r.id ? `${r.color}15` : "#1c2128", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", fontSize: "0.83rem", fontWeight: red === r.id ? 700 : 400, color: red === r.id ? r.color : "#7d8590", fontFamily: "'DM Sans',sans-serif" }}><span>{r.icon}</span>{r.label}</button>)}</div></div>
-          <div><label style={{ fontSize: "0.78rem", fontWeight: 600, display: "block", marginBottom: "8px" }}>Tono</label><div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>{TONOS.map(t => <button key={t} onClick={() => setTono(t)} style={{ padding: "5px 12px", borderRadius: "20px", border: `1px solid ${tono === t ? "#2f81f7" : "#30363d"}`, background: tono === t ? "rgba(47,129,247,0.15)" : "transparent", color: tono === t ? "#2f81f7" : "#7d8590", fontSize: "0.78rem", cursor: "pointer", fontFamily: "'DM Sans',sans-serif", fontWeight: tono === t ? 600 : 400 }}>{t}</button>)}</div></div>
-          <div><label style={{ fontSize: "0.78rem", fontWeight: 600, display: "block", marginBottom: "8px" }}>Tema del post *</label><textarea value={tema} onChange={e => setTema(e.target.value)} placeholder={`¿Sobre qué quieres publicar en ${redActiva?.label}?`} rows={4} style={{ width: "100%", padding: "10px 12px", resize: "vertical" }} /></div>
-          <button className="btn-primary" onClick={generar} disabled={loading || !tema.trim()} style={{ width: "100%", padding: "10px" }}>{loading ? "Generando con IA..." : `Generar post para ${redActiva?.label}`}</button>
+    <div style={S.page}>
+      <div style={{ marginBottom: "28px", paddingBottom: "20px", borderBottom: "1px solid var(--border)" }}>
+        <h1 style={S.h1}>Generador de Contenido</h1>
+        <p style={S.sub}>Crea posts optimizados para cada red social con inteligencia artificial</p>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: "24px" }}>
+        {/* Form */}
+        <div style={S.card}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+            <div>
+              <label style={S.label}>Red social</label>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                {REDES.map(r => (
+                  <button key={r.id} onClick={() => setRed(r.id)} style={{
+                    padding: "10px 14px", borderRadius: "8px", border: "1px solid",
+                    borderColor: red === r.id ? "var(--accent)" : "var(--border)",
+                    background: red === r.id ? "var(--accent-dim)" : "var(--bg-2)",
+                    cursor: "pointer", textAlign: "left", fontFamily: "var(--font-body)", transition: "all 0.15s",
+                  }}>
+                    <span style={{ fontSize: "0.875rem", fontWeight: 600, color: red === r.id ? "var(--accent)" : "var(--text-1)", display: "block" }}>{r.label}</span>
+                    <span style={{ fontSize: "0.75rem", color: "var(--text-3)" }}>{r.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label style={S.label}>Tono</label>
+              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                {TONOS.map(t => (
+                  <button key={t} onClick={() => setTono(t)} style={{
+                    padding: "5px 12px", borderRadius: "100px", border: "1px solid",
+                    borderColor: tono === t ? "var(--accent)" : "var(--border)",
+                    background: tono === t ? "var(--accent-dim)" : "transparent",
+                    color: tono === t ? "var(--accent)" : "var(--text-3)",
+                    cursor: "pointer", fontSize: "0.78rem", fontWeight: tono === t ? 600 : 400, fontFamily: "var(--font-body)", transition: "all 0.15s",
+                  }}>{t}</button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label style={S.label}>Tema del post</label>
+              <input value={tema} onChange={e => setTema(e.target.value)} placeholder="Ej: Cómo mejorar la productividad con IA" style={S.input} />
+            </div>
+
+            <div>
+              <label style={S.label}>Contexto adicional <span style={{ fontWeight: 400 }}>(opcional)</span></label>
+              <textarea value={contexto} onChange={e => setContexto(e.target.value)} placeholder="Datos, estadísticas, anécdota personal, CTA específico..." rows={3} style={{ ...S.input, resize: "none" }} />
+            </div>
+
+            <button onClick={generate} disabled={generating || !tema.trim()} style={{ padding: "11px", background: "var(--accent)", border: "none", color: "#fff", borderRadius: "8px", cursor: "pointer", fontWeight: 700, fontSize: "0.875rem", fontFamily: "var(--font-body)", opacity: generating || !tema.trim() ? 0.6 : 1 }}>
+              {generating ? "Generando contenido..." : `Crear post para ${redData.label}`}
+            </button>
+          </div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+
+        {/* Output */}
+        <div>
           {output ? (
-            <div className="card" style={{ padding: "0", flex: 1 }}>
-              <div style={{ padding: "12px 16px", borderBottom: "1px solid #30363d", display: "flex", alignItems: "center", gap: "8px" }}>
-                <span>{redActiva?.icon}</span>
-                <span style={{ fontWeight: 600, fontSize: "0.875rem", color: redActiva?.color }}>{redActiva?.label}</span>
-                <span style={{ marginLeft: "auto", fontSize: "0.72rem", color: "#7d8590" }}>{output.length} caracteres</span>
+            <div style={S.card}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+                <div>
+                  <div style={{ fontSize: "0.7rem", color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}>{redData.label}</div>
+                  <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--text-2)", marginTop: "2px" }}>Post generado</div>
+                </div>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button onClick={generate} style={{ padding: "6px 12px", background: "var(--bg-2)", border: "1px solid var(--border)", color: "var(--text-2)", borderRadius: "7px", cursor: "pointer", fontSize: "0.78rem", fontFamily: "var(--font-body)" }}>
+                    Regenerar
+                  </button>
+                  <button onClick={copy} style={{ padding: "6px 14px", background: copied ? "var(--green)" : "var(--accent)", border: "none", color: "#fff", borderRadius: "7px", cursor: "pointer", fontSize: "0.78rem", fontWeight: 600, fontFamily: "var(--font-body)", transition: "background 0.2s" }}>
+                    {copied ? "Copiado" : "Copiar"}
+                  </button>
+                </div>
               </div>
-              <div style={{ padding: "16px", whiteSpace: "pre-wrap", fontSize: "0.875rem", lineHeight: 1.7, flex: 1 }}>{output}</div>
-              <div style={{ padding: "12px 16px", borderTop: "1px solid #30363d", display: "flex", gap: "8px" }}>
-                <button className="btn-secondary" style={{ fontSize: "0.78rem" }} onClick={() => navigator.clipboard.writeText(output)}>Copiar</button>
-                <SaveResultButton appId="contenido-redes" appName="Generador de Contenido" outputText={output} inputText={tema} />
-                <button className="btn-secondary" style={{ fontSize: "0.78rem" }} onClick={generar}>Regenerar</button>
-              </div>
+              <textarea value={output} onChange={e => setOutput(e.target.value)} rows={16} style={{ ...S.input, resize: "none", lineHeight: 1.7 }} />
             </div>
           ) : (
-            <div className="card" style={{ padding: "40px", textAlign: "center", flex: 1 }}>
-              <div style={{ fontSize: "2rem", marginBottom: "10px" }}>✍️</div>
-              <div style={{ color: "#7d8590", fontSize: "0.83rem" }}>El contenido generado aparecerá aquí</div>
+            <div style={{ ...S.card, textAlign: "center", padding: "60px 24px", color: "var(--text-3)" }}>
+              <div style={{ fontSize: "2.5rem", opacity: 0.2, marginBottom: "16px" }}>▣</div>
+              <p style={{ fontSize: "0.875rem", marginBottom: "6px" }}>Tu post aparecerá aquí</p>
+              <p style={{ fontSize: "0.8rem", color: "var(--text-3)" }}>Selecciona la red, el tono y el tema, luego genera el contenido.</p>
             </div>
-          )}
-          {history.length > 0 && (
-            <div><div style={{ fontSize: "0.72rem", color: "#7d8590", fontWeight: 600, textTransform: "uppercase", marginBottom: "6px" }}>Generados antes</div>
-            {history.map((h, i) => <div key={i} className="card" style={{ padding: "10px 14px", marginBottom: "6px", cursor: "pointer" }} onClick={() => setOutput(h.content)}><div style={{ fontSize: "0.78rem", fontWeight: 600, marginBottom: "2px" }}>{h.red} · {h.tema}</div><div style={{ fontSize: "0.72rem", color: "#7d8590", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.content.substring(0, 80)}...</div></div>)}</div>
           )}
         </div>
       </div>

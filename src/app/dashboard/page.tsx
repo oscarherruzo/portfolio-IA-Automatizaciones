@@ -65,7 +65,7 @@ export default async function DashboardPage() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "28px" }}>
         <div>
           <h1 style={{ fontSize: "1.7rem", fontWeight: 800, color: "var(--text-1)", marginBottom: "4px" }}>
-            Bienvenido, {firstName} 👋
+            Bienvenido, {firstName}
           </h1>
           <p style={{ color: "var(--text-3)", fontSize: "0.875rem" }}>
             {new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" })}
